@@ -1,0 +1,20 @@
+class TweetRepository():
+    compteur = 0
+
+    def __init__(self):
+        self.clear()
+
+    def add(self,tweet):
+        tweet.id = self.next_id
+        self.tweets.append(tweet)
+        self.next_id += 1
+
+    def get(self,id):
+        for tweet in self.tweets:
+            if tweet.id == id:
+                return tweet
+        return None
+
+    def clear(self):
+      self.tweets = []
+      self.next_id = 1
