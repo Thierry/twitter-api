@@ -11,6 +11,7 @@ tweet_model = api.model('Tweet', {
 })
 
 @api.route('/<int:id>')
+@api.response(404, 'Tweet not found')
 class TweetResource(Resource):
     @api.marshal_with(tweet_model)
     def get(self, id):
@@ -19,3 +20,9 @@ class TweetResource(Resource):
             api.abort(404, "Tweet not found")
         else:
             return tweet
+
+    def delete(self,id):
+        if tweet_repository.get(id) == None:
+            api.abort(404, "Tweet not found")
+        tweet_repository.delete(id)
+        return "",204
