@@ -13,6 +13,7 @@ class TestTweetViews(TestCase):
         tweet_repository.clear()
 
     def test_tweet_show(self):
+        self.setUp()
         first_tweet = Tweet("First tweet")
         tweet_repository.add(first_tweet)
         response = self.client.get("/tweets/1")
@@ -21,3 +22,14 @@ class TestTweetViews(TestCase):
         self.assertEqual(response_tweet["id"], 1)
         self.assertEqual(response_tweet["text"], "First tweet")
         self.assertIsNotNone(response_tweet["created_at"])
+
+    def test_tweet_delete(self):
+        self.setUp()
+        first_tweet = Tweet("First tweet")
+        tweet_repository.add(first_tweet)
+        second_tweet = Tweet("Second tweet")
+        tweet_repository.add(second_tweet)
+        response = self.client.delete("/tweets/1")
+        self.assertIn("204",response.status)
+        response = self.client.delete("/tweets/1")
+        self.assertIn("404",response.status)

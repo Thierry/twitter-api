@@ -34,3 +34,15 @@ class TestTweetRepository(TestCase):
         repository.add(Tweet("Fourth"))
         self.assertEqual(repository.get(3), tweet)
         self.assertIsNone(repository.get(5))
+
+    def test_delete_tweet(self):
+        repository = TweetRepository()
+        repository.add(Tweet("First"))
+        repository.add(Tweet("Second"))
+        tweet = Tweet("Third")
+        repository.add(tweet)
+        repository.add(Tweet("Fourth"))
+        self.assertEqual(len(repository.tweets), 4)
+        repository.delete(3)
+        self.assertEqual(len(repository.tweets), 3)
+        self.assertIsNone(repository.get(3))
