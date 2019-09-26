@@ -10,7 +10,7 @@ tweet_model = api.model('Tweet', {
     'created_at': fields.DateTime
 })
 
-@api.route('/')
+@api.route("") # /tweets
 class TweetListResource(Resource):
     @api.marshal_with(tweet_model)
     def post(self):
@@ -23,7 +23,12 @@ class TweetListResource(Resource):
         db.session.commit()
         return tweet, 201
 
-@api.route('/<int:id>')
+    @api.marshal_with(tweet_model)
+    def get(self):
+        tweets = db.session.query(Tweet).all()
+        return tweets
+
+@api.route('/<int:id>') # /tweets/{id}
 @api.response(404, 'Tweet not found')
 class TweetResource(Resource):
     @api.marshal_with(tweet_model)
