@@ -1,9 +1,8 @@
 from flask_restplus import reqparse, Namespace, Resource, fields
-from app.db import tweet_repository
 from app.models import Tweet
+from app import db
 
 api = Namespace('tweets')
-
 
 tweet_model = api.model('Tweet', {
     'text': fields.String,
@@ -11,48 +10,52 @@ tweet_model = api.model('Tweet', {
     'created_at': fields.DateTime
 })
 
-tweet_parser = reqparse.RequestParser()
-tweet_parser.add_argument('text', required = True, type=str)
-
-@api.route('/')
+@api.route("") # /tweets
 class TweetListResource(Resource):
     @api.marshal_with(tweet_model)
     def post(self):
-        args = tweet_parser.parse_args()
-        if 'text' in args.keys() and args['text'] != '':
-            tweet = Tweet(args['text'])
-            print(tweet.text)
-            tweet_repository.add(tweet)
-            return tweet, 201
-        else:
+        try:
+            text = api.payload["text"]
+        except:
             return "", 400
+        tweet = Tweet(text)
+        db.session.add(tweet)
+        db.session.commit()
+        return tweet, 201
 
-@api.route('/<int:id>')
+    @api.marshal_with(tweet_model)
+    def get(self):
+        tweets = db.session.query(Tweet).all()
+        return tweets
+
+@api.route('/<int:id>') # /tweets/{id}
 @api.response(404, 'Tweet not found')
 class TweetResource(Resource):
     @api.marshal_with(tweet_model)
     def get(self, id):
-        tweet = tweet_repository.get(id)
+        tweet = db.session.query(Tweet).get(id)
         if tweet is None:
             api.abort(404, "Tweet not found")
         else:
             return tweet
 
     def delete(self,id):
-        if tweet_repository.get(id) == None:
+        tweet = db.session.query(Tweet).get(id)
+        if tweet == None:
             api.abort(404, "Tweet not found")
-        tweet_repository.delete(id)
+        db.session.delete(tweet)
+        db.session.commit()
         return "",204
 
     @api.marshal_with(tweet_model)
     def patch(self, id):
-        tweet = tweet_repository.get(id)
+        tweet = db.session.query(Tweet).get(id)
         if tweet == None:
             api.abort(404, "Tweet not found")
-        args = tweet_parser.parse_args()
-        if 'text' in args.keys() and args['text'] != '':
-            tweet.text = args['text']
-            return tweet, 201
-        else:
+        try:
+            tweet.text = api.payload["text"]
+        except:
             return "", 400
-
+        db.session.add(tweet)
+        db.session.commit()
+        return tweet
