@@ -17,6 +17,21 @@ class TestTweetViews(TestCase):
         db.session.remove()
         db.drop_all()
 
+    def test_all_tweets(self):
+        self.setUp()
+        first_tweet = Tweet("First tweet")
+        second_tweet = Tweet("Second tweet")
+        db.session.add(first_tweet)
+        db.session.add(second_tweet)
+        db.session.commit()
+        response = self.client.get("/tweets")
+        self.assertIn("200", response.status)
+        tweets = response.json
+        self.assertEqual(len(tweets),2)
+        self.assertEqual(tweets[0]["text"],"First tweet")
+        self.assertEqual(tweets[1]["text"],"Second tweet")
+
+
     def test_tweet_show(self):
         self.setUp()
         first_tweet = Tweet("First tweet")
@@ -24,7 +39,6 @@ class TestTweetViews(TestCase):
         db.session.commit()
         response = self.client.get("/tweets/1")
         response_tweet = response.json
-        print(response_tweet)
         self.assertEqual(response_tweet["id"], 1)
         self.assertEqual(response_tweet["text"], "First tweet")
         self.assertIsNotNone(response_tweet["created_at"])
@@ -44,7 +58,7 @@ class TestTweetViews(TestCase):
         json_data = json.dumps({
             "text": "Created via Internet"
         })
-        response = self.client.post("/tweets/", data=json_data, content_type='application/json')
+        response = self.client.post("/tweets", data=json_data, content_type='application/json')
         self.assertIn("201",response.status)
         response_tweet = response.json
         self.assertEqual(response_tweet["id"], 1)
@@ -57,7 +71,7 @@ class TestTweetViews(TestCase):
         json_data = json.dumps({
             "texting": "Created via Internet"
         })
-        response = self.client.post("/tweets/", data=json_data, content_type='application/json')
+        response = self.client.post("/tweets", data=json_data, content_type='application/json')
         self.assertIn("400",response.status)
         self.assertEqual(len(db.session.query(Tweet).all()), 0)
 
