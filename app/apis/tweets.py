@@ -43,3 +43,16 @@ class TweetResource(Resource):
             api.abort(404, "Tweet not found")
         tweet_repository.delete(id)
         return "",204
+
+    @api.marshal_with(tweet_model)
+    def patch(self, id):
+        tweet = tweet_repository.get(id)
+        if tweet == None:
+            api.abort(404, "Tweet not found")
+        args = tweet_parser.parse_args()
+        if 'text' in args.keys() and args['text'] != '':
+            tweet.text = args['text']
+            return tweet, 201
+        else:
+            return "", 400
+

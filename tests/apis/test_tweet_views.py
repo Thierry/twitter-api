@@ -56,3 +56,35 @@ class TestTweetViews(TestCase):
         response = self.client.post("/tweets/", data=json_data, content_type='application/json')
         self.assertIn("400",response.status)
         self.assertEqual(len(tweet_repository.tweets), 0)
+
+    def test_tweet_patch_valid(self):
+        json_data = json.dumps({
+            "text": "Patched via API call"
+        })
+        self.setUp()
+        first_tweet = Tweet("First tweet")
+        tweet_repository.add(first_tweet)
+        response = self.client.patch("/tweets/1", data=json_data, content_type='application/json')
+        self.assertIn("201",response.status)
+        response_tweet = response.json
+        first_tweet = tweet_repository.get(1)
+        self.assertEqual(response_tweet["text"], "Patched via API call")
+        self.assertEqual(first_tweet.text, "Patched via API call")
+
+    def test_tweet_patch_invalid(self):
+        self.setUp()
+        first_tweet = Tweet("First tweet")
+        tweet_repository.add(first_tweet)
+        json_data = json.dumps({
+            "textdata": "Patched via API call"
+        })
+        response = self.client.patch("/tweets/1", data=json_data, content_type='application/json')
+        self.assertIn("400",response.status)
+
+    def test_tweet_patch_unknown(self):
+        self.setUp()
+        json_data = json.dumps({
+            "textdata": "Patched via API call"
+        })
+        response = self.client.patch("/tweets/2", data=json_data, content_type='application/json')
+        self.assertIn("404",response.status)
