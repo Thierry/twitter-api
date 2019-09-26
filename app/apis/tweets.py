@@ -1,4 +1,4 @@
-from flask_restplus import reqparse, Namespace, Resource, fields
+from flask_restplus import Namespace, Resource, fields
 from app.models import Tweet
 from app import db
 
@@ -10,9 +10,14 @@ tweet_model = api.model('Tweet', {
     'created_at': fields.DateTime
 })
 
+new_tweet_model = api.model('Tweet', {
+    'text': fields.String
+})
+
 @api.route("") # /tweets
 class TweetListResource(Resource):
     @api.marshal_with(tweet_model)
+    @api.expect(new_tweet_model, validate = True)
     def post(self):
         try:
             text = api.payload["text"]
@@ -48,6 +53,7 @@ class TweetResource(Resource):
         return "",204
 
     @api.marshal_with(tweet_model)
+    @api.expect(new_tweet_model, validate = True)
     def patch(self, id):
         tweet = db.session.query(Tweet).get(id)
         if tweet == None:
