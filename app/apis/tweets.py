@@ -1,5 +1,6 @@
 from flask_restplus import Namespace, Resource, fields
-from app.models import Tweet
+from flask import request
+from app.models import Tweet, User
 from app import db
 
 api = Namespace('tweets')
@@ -7,12 +8,22 @@ api = Namespace('tweets')
 tweet_model = api.model('Tweet', {
     'text': fields.String,
     'id': fields.Integer,
-    'created_at': fields.DateTime
+    'created_at': fields.DateTime,
+    'user': fields.String
 })
 
 new_tweet_model = api.model('Tweet', {
     'text': fields.String
 })
+
+def get_api_key_user():
+    auth_header = request.headers.get('Authorization')
+    if auth_header == None or "TWITTER-APIKEY " not in auth_header:
+        return None
+    api_key = auth_header.split(' ')[1]
+
+    user = User.get_by_api_key(api_key)
+    return user
 
 @api.route("") # /tweets
 class TweetListResource(Resource):
@@ -22,8 +33,12 @@ class TweetListResource(Resource):
         try:
             text = api.payload["text"]
         except:
-            return "", 400
+            return None, 400
+        user = get_api_key_user()
+        if user == None:
+            return "Wrong api key or no api key provided", 401
         tweet = Tweet(text)
+        tweet.user = user
         db.session.add(tweet)
         db.session.commit()
         return tweet, 201
@@ -48,6 +63,9 @@ class TweetResource(Resource):
         tweet = db.session.query(Tweet).get(id)
         if tweet == None:
             api.abort(404, "Tweet not found")
+        user = get_api_key_user()
+        if tweet.user != user:
+            return "NOT YOUR TWEET (or forgot api_key?)", 401
         db.session.delete(tweet)
         db.session.commit()
         return "",204
@@ -56,12 +74,14 @@ class TweetResource(Resource):
     @api.expect(new_tweet_model, validate = True)
     def patch(self, id):
         tweet = db.session.query(Tweet).get(id)
+        user = get_api_key_user()
         if tweet == None:
             api.abort(404, "Tweet not found")
         try:
             tweet.text = api.payload["text"]
+            if tweet.user != user:
+                return "NOT YOUR TWEET (or forgot api_key?)", 401
         except:
             return "", 400
-        db.session.add(tweet)
         db.session.commit()
         return tweet
