@@ -46,8 +46,3 @@ class User(db.Model):
 def generate_api_key(mapper, connect, self):
         if not self.api_key:
             self.api_key = str(uuid.uuid4())
-
-#    def generate_api_key(self):
-#        if not self.api_key:
-#            self.api_key = str(uuid.uuid4())
-#        return self.api_key

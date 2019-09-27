@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, session, request, jsonify
+from flask import Flask, redirect, url_for, session, request, jsonify, render_template
 from flask_restplus import Api
 from flask_sqlalchemy import SQLAlchemy
 from flask_oauthlib.client import OAuth
@@ -19,8 +19,8 @@ def create_app():
 
     github = oauth.remote_app(
         'github',
-        consumer_key=GIT_CONSUMER_KEY,
-        consumer_secret=GIT_CONSUMER_SECRET,
+        consumer_key=app.config['GIT_CONSUMER_KEY'],
+        consumer_secret=app.config['GIT_CONSUMER_SECRET'],
         request_token_params={'scope': 'user:email'},
         base_url='https://api.github.com/',
         request_token_url=None,
@@ -31,7 +31,9 @@ def create_app():
 
     @app.route('/')
     def index():
-        return "Home"
+        tweets = db.session.query(Tweet).all()
+        return render_template('tweet.html', tweets=tweets)
+
 
     @app.route('/user')
     def display_user():

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Tweets</h1>
+
+  <ul class="list-unstyled">
+    {% for tweet in tweets %}
+      <li>
+        <div class="tweet">
+          <div class="tweetuser">
+            <div class="useravatar">
+              <img class="rounded-circle z-depth-0 mw-100 mh-100" src="{{tweet.user.avatar_url}}">
+            </div>
+            {{ tweet.user }}
+          </div>
+          <div class="tweettext">
+            {{ tweet.text }}
+          </div>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}
