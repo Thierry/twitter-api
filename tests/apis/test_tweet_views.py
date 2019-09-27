@@ -1,6 +1,6 @@
 from flask_testing import TestCase
 from app import create_app, db
-from app.models import Tweet
+from app.models import Tweet, User
 import json
 
 class TestTweetViews(TestCase):
@@ -12,13 +12,17 @@ class TestTweetViews(TestCase):
 
     def setUp(self):
         db.create_all()
+        self.user = User()
+        self.user.name = "test user"
+        self.user.api_key = "MYAPIKEY"
+        db.session.add(self.user)
+        db.session.commit()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
 
     def test_all_tweets(self):
-        self.setUp()
         first_tweet = Tweet("First tweet")
         second_tweet = Tweet("Second tweet")
         db.session.add(first_tweet)
@@ -33,7 +37,6 @@ class TestTweetViews(TestCase):
 
 
     def test_tweet_show(self):
-        self.setUp()
         first_tweet = Tweet("First tweet")
         db.session.add(first_tweet)
         db.session.commit()
@@ -44,55 +47,82 @@ class TestTweetViews(TestCase):
         self.assertIsNotNone(response_tweet["created_at"])
 
     def test_tweet_delete(self):
-        self.setUp()
         first_tweet = Tweet("First tweet")
+        first_tweet.user = self.user
+        db.session.add(first_tweet)
+        db.session.commit()
+        response = self.client.delete("/tweets/1", headers = { "authorization": "TWITTER-APIKEY MYAPIKEY" })
+        self.assertIn("204",response.status)
+        response = self.client.delete("/tweets/1", headers = { "authorization": "TWITTER-APIKEY MYAPIKEY" })
+        self.assertIn("404",response.status)
+
+    def test_tweet_delete_apikey_KO(self):
+        first_tweet = Tweet("First tweet")
+        first_tweet.user = self.user
         db.session.add(first_tweet)
         db.session.commit()
         response = self.client.delete("/tweets/1")
-        self.assertIn("204",response.status)
-        response = self.client.delete("/tweets/1")
-        self.assertIn("404",response.status)
+        self.assertIn("401",response.status)
 
-    def test_tweet_create_valid(self):
-        self.setUp()
+    def test_tweet_create_valid_apiOK(self):
         json_data = json.dumps({
             "text": "Created via Internet"
         })
-        response = self.client.post("/tweets", data=json_data, content_type='application/json')
+        response = self.client.post("/tweets", headers = { "authorization": "TWITTER-APIKEY MYAPIKEY" }, data=json_data, content_type='application/json')
         self.assertIn("201",response.status)
         response_tweet = response.json
         self.assertEqual(response_tweet["id"], 1)
         self.assertEqual(response_tweet["text"], "Created via Internet")
         db_tweet = db.session.query(Tweet).get(1)
         self.assertEqual(db_tweet.text,"Created via Internet")
+        self.assertEqual(db_tweet.user, self.user)
+
+    def test_tweet_create_valid_but_apiKO(self):
+        json_data = json.dumps({
+            "text": "Created via Internet"
+        })
+        response = self.client.post("/tweets", data=json_data, content_type='application/json')
+        self.assertIn("401",response.status)
+        response = self.client.post("/tweets", headers = { "authorization": "TWITTER-APIKEY WRONGAPIKEY" }, data=json_data, content_type='application/json')
+        self.assertIn("401",response.status)
 
     def test_tweet_create_invalid(self):
-        self.setUp()
         json_data = json.dumps({
             "texting": "Created via Internet"
         })
-        response = self.client.post("/tweets", data=json_data, content_type='application/json')
+        response = self.client.post("/tweets", headers = { "authorization": "TWITTER-APIKEY MYAPIKEY" }, data=json_data, content_type='application/json')
         self.assertIn("400",response.status)
         self.assertEqual(len(db.session.query(Tweet).all()), 0)
 
-    def test_tweet_patch_valid(self):
+    def test_tweet_patch_valid_apikey_OK(self):
         json_data = json.dumps({
             "text": "Patched via API call"
         })
-        self.setUp()
         first_tweet = Tweet("First tweet")
+        first_tweet.user = self.user
         db.session.add(first_tweet)
         db.session.commit()
-        response = self.client.patch("/tweets/1", data=json_data, content_type='application/json')
+        response = self.client.patch("/tweets/1", headers = { "authorization": "TWITTER-APIKEY MYAPIKEY" }, data=json_data, content_type='application/json')
         self.assertIn("200",response.status)
         response_tweet = response.json
         first_tweet = db.session.query(Tweet).get(1)
         self.assertEqual(response_tweet["text"], "Patched via API call")
         self.assertEqual(first_tweet.text, "Patched via API call")
 
-    def test_tweet_patch_invalid(self):
-        self.setUp()
+    def test_tweet_patch_valid_apikey_KO(self):
+        json_data = json.dumps({
+            "text": "Patched via API call"
+        })
         first_tweet = Tweet("First tweet")
+        first_tweet.user = self.user
+        db.session.add(first_tweet)
+        db.session.commit()
+        response = self.client.patch("/tweets/1", data=json_data, content_type='application/json')
+        self.assertIn("401",response.status)
+
+    def test_tweet_patch_invalid(self):
+        first_tweet = Tweet("First tweet")
+        first_tweet.user = self.user
         db.session.add(first_tweet)
         db.session.commit()
         json_data = json.dumps({
@@ -101,8 +131,18 @@ class TestTweetViews(TestCase):
         response = self.client.patch("/tweets/1", data=json_data, content_type='application/json')
         self.assertIn("400",response.status)
 
+    def test_tweet_patch_invalid_apikey_OK(self):
+        first_tweet = Tweet("First tweet")
+        first_tweet.user = self.user
+        db.session.add(first_tweet)
+        db.session.commit()
+        json_data = json.dumps({
+            "textdata": "Patched via API call"
+        })
+        response = self.client.patch("/tweets/1", headers = { "authorization": "TWITTER-APIKEY MYAPIKEY" }, data=json_data, content_type='application/json')
+        self.assertIn("400",response.status)
+
     def test_tweet_patch_unknown(self):
-        self.setUp()
         json_data = json.dumps({
             "textdata": "Patched via API call"
         })
