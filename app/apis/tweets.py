@@ -22,7 +22,6 @@ def get_api_key_user():
         return None
     api_key = auth_header.split(' ')[1]
 
-    print(f"api_key : {api_key}", flush = True)
     user = User.get_by_api_key(api_key)
     return user
 
@@ -34,7 +33,7 @@ class TweetListResource(Resource):
         try:
             text = api.payload["text"]
         except:
-            return "", 400
+            return None, 400
         user = get_api_key_user()
         if user == None:
             return "Wrong api key or no api key provided", 401
